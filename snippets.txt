@@ -1,0 +1,16 @@
+snippets : list[dict] = [
+    {
+        "id":1,
+        "author":"niggesh sharma",
+        "titke": "fastapi finna work dawg",
+        "content": "dszfghjhgf", 
+        "date_posted":"April 20, 2026"
+    },
+    {
+        "id":2,
+        "author":"arnav sharma",
+        "titke": "fastapi finna work dawg",
+        "content": "dszfghjhgf",
+        "date_posted":"April 30, 2026"
+    },
+]
