@@ -6,22 +6,36 @@ from fastapi import Depends, FastAPI, HTTPException, Request, status
 # used for correct REST API practices
 
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+# from fastapi.responses import JSONResponse #NOT NEEDED ANYMORE
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates  # the {{}} thing used in templates is jinja2
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession #needed for async
+from sqlalchemy.orm import selectinload #needed for async
 from starlette.exceptions import HTTPException as StarletteHTTPException  # the thing which actually deals with the http exception
 
 import models
 from database import Base, engine, get_db
 from schemas import (UserCreate, UserUpdate, PostCreate, PostResponse,  UserResponse, PostUpdate)
 
+from contextlib import asynccontextmanager #lifespan function needed for async
+from fastapi.exception_handlers import (http_exception_handler, request_validation_exception_handler) #needed for async
+
 # create database tables before the app is initialized
 # works on all models that inherit from Base
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(_app:FastAPI):
+    #startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all) #enables lazy loading of tables, creates tables if they don't exist when the app starts up
+    yield #enables eager loading of related objects in async context
+    #shutdown
+    await engine.dispose()
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -35,10 +49,16 @@ templates = Jinja2Templates(directory="templates")
 # U - UPDATE - PUT/PATCH
 # D - DELETE - DELETE
 
+
+#SYNCHRONOUS PATH OPERATIONS
+# running function with def keyword, runs in the main thread, blocks other operations until it finishes
+# running route with async def allows other operations to run while waiting for the function to complete, 
+# useful for I/O bound tasks like database queries or network requests
+
 @app.get("/", include_in_schema=False, name="home")
 @app.get("/posts", include_in_schema=False, name="posts")
-def home(request: Request, db: Annotated[Session, Depends(get_db)]):
-    result = db.execute(select(models.Post))
+async def home(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
+    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)),) #.options is the eager loading
     posts = result.scalars().all()
     return templates.TemplateResponse(
         request,
@@ -48,8 +68,8 @@ def home(request: Request, db: Annotated[Session, Depends(get_db)]):
 
 
 @app.get("/posts/{post_id}", include_in_schema=False)
-def post_page(request: Request, post_id: int, db: Annotated[Session, Depends(get_db)]):
-    result = db.execute(select(models.Post).where(models.Post.id == post_id))
+async def post_page(request: Request, post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)).where(models.Post.id == post_id))
     post = result.scalars().first()
     if post:
         title = post.title[:50]
@@ -62,19 +82,19 @@ def post_page(request: Request, post_id: int, db: Annotated[Session, Depends(get
 
 
 @app.get("/users/{user_id}/posts", include_in_schema=False, name="user_posts")
-def user_posts_page(
+async def user_posts_page(
     request: Request,
     user_id: int,
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    result = db.execute(select(models.User).where(models.User.id == user_id))
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
     user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    result = db.execute(select(models.Post).where(models.Post.user_id == user_id))
+    result = await db.execute(select(models.Post).where(models.Post.user_id == user_id))
     posts = result.scalars().all()
     return templates.TemplateResponse(
         request,
@@ -88,10 +108,10 @@ def user_posts_page(
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
 )
-def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
+async def create_user(user: UserCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     # dependency injection: we request a database session via Depends(get_db)
     # allows easy access to DB without manually creating sessions
-    result = db.execute(
+    result = await db.execute(
         select(models.User).where(models.User.username == user.username),
     )
     # scalars extracts the actual user object
@@ -102,7 +122,7 @@ def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already exists",
         )
-    result = db.execute(
+    result = await db.execute(
         select(models.User).where(models.User.email == user.email),
     )
     existing_email = result.scalars().first()
@@ -116,15 +136,15 @@ def create_user(user: UserCreate, db: Annotated[Session, Depends(get_db)]):
         email=user.email,
     )
     db.add(new_user)  # stages the insert
-    db.commit()  # executes the insert and saves the user
-    db.refresh(new_user)  # refresh to get updated object with id
+    await db.commit()  # executes the insert and saves the user
+    await db.refresh(new_user)  # refresh to get updated object with id
     return new_user
 
 @app.patch("/api/users/{user_id}", response_model=UserResponse)
-def update_user(
+async def update_user(
     user_id: int,
     user_update: UserUpdate,
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result=db.execute(select(models.User).where(models.User.id == user_id))
     user=result.scalars().first()
@@ -136,7 +156,7 @@ def update_user(
         )
     
     if user_update.username and user_update.username!= user.username:
-        result= db.execute(select(models.User).where(models.User.username == user_update.username))
+        result= await db.execute(select(models.User).where(models.User.username == user_update.username))
         existing_user=result.scalars().first()
         if existing_user:
             raise HTTPException(
@@ -144,13 +164,13 @@ def update_user(
                 detail="Username already exists",
             )
     if user_update.email and user_update.email != user.email:
-        result=db.execute(select(models.User).where(models.User.email == user_update.email))
+        result= await db.execute(select(models.User).where(models.User.email == user_update.email))
         existing_email=result.scalars().first()
         if existing_email:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email already registered",
-            )
+            ) 
     
     if user_update.username is not None:
         user.username= user_update.username
@@ -159,13 +179,13 @@ def update_user(
     if user_update.image_file is not None:
         user.image_file= user_update.image_file
     
-    db.commit()
-    db.refresh(user)
+    await db.commit()
+    await db.refresh(user)
     return user
 
 @app.get("/api/users/{user_id}", response_model=UserResponse)
-def get_user(user_id: int, db: Annotated[Session, Depends(get_db)]):
-    result = db.execute(
+async def get_user(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    result = await db.execute(
         select(models.User).where(models.User.id == user_id),
     )
     user = result.scalars().first()
@@ -175,15 +195,16 @@ def get_user(user_id: int, db: Annotated[Session, Depends(get_db)]):
 
 
 @app.get("/api/users/{user_id}/posts", response_model=list[PostResponse])
-def get_user_posts(user_id: int, db: Annotated[Session, Depends(get_db)]):
-    result = db.execute(select(models.User).where(models.User.id == user_id))
+async def get_user_posts(user_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
     user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
-    result = db.execute(select(models.Post).where(models.Post.user_id == user_id))
+    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)).where(models.Post.user_id == user_id))
+    #figure out when to use selectinload. async def and await for db is simple enough to eunderstna.d THIS SHIT IS CONFUSING
     posts = result.scalars().all()
     return posts
 
