@@ -3,7 +3,7 @@ from sqlalchemy.orm import DeclarativeBase
  
 SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./blog.db"
 
-engine = create_engine(
+engine = create_async_engine(
     SQLALCHEMY_DATABASE_URL,
     connect_args={"check_same_thread": False},  # this is SQLite specific
 )

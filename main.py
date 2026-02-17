@@ -319,18 +319,16 @@ async def delete_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]
 # THE EXCEPTION HANDLERS
 @app.exception_handler(StarletteHTTPException)
 async def general_http_exception_handler(request: Request, exception: StarletteHTTPException):
+    
+
+    # if API route, return JSON
+    if request.url.path.startswith("/api"):
+        return await http_exception_handler(request, exception) #replace json response with this for both exception handlers
     message = (
         exception.detail
         if exception.detail
         else "An error occurred. Please check your request and try again."
     )
-
-    # if API route, return JSON
-    if request.url.path.startswith("/api"):
-        return JSONResponse(
-            status_code=exception.status_code,
-            content={"detail": message},
-        )
 
     return templates.TemplateResponse(
         request,
@@ -348,10 +346,8 @@ async def general_http_exception_handler(request: Request, exception: StarletteH
 async def validation_exception_handler(request: Request, exception: RequestValidationError):
     # if data not matching expected type or structure
     if request.url.path.startswith("/api"):
-        return JSONResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={"detail": exception.errors()},
-        )
+        return await http_exception_handler(request, exception)
+
     return templates.TemplateResponse(
         request,
         "error.html",
