@@ -1,4 +1,4 @@
-#IMPORTS FOR POST ROUTERS
+# IMPORTS FOR POST ROUTERS
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,12 +10,17 @@ import models
 from database import get_db
 from schemas import PostCreate, PostResponse, PostUpdate
 
-router= APIRouter() #this is what will decorate our apps instead of the main app, allows us to organize our code better and separate concerns
+router = APIRouter()  # this is what will decorate our apps instead of the main app, allows us to organize our code better and separate concerns
 
 
 @router.get("", response_model=list[PostResponse])
 async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)))
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .order_by(models.Post.date_posted.desc())
+    )  # eager loading author details with each post, also ordering by most recent posts first
+    # .order_by(models.Post.date_posted.desc()) --> ordering posts by descending order
     posts = result.scalars().all()
     return posts
 
@@ -26,13 +31,16 @@ async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
     status_code=status.HTTP_201_CREATED,
 )
 async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.User).where(models.User.id == post.user_id))
+    result = await db.execute(
+        select(models.User).where(models.User.id == post.user_id)
+    )
     user = result.scalars().first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+
     new_post = models.Post(
         title=post.title,
         content=post.content,
@@ -46,32 +54,47 @@ async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_
 
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).options(selectinload(models.Post.author)).where(models.Post.id == post_id),)    
+    result = await db.execute(
+        select(models.Post)
+        .options(selectinload(models.Post.author))
+        .where(models.Post.id == post_id)
+    )
     post = result.scalars().first()
     if post:
         return post
     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
+
 @router.put("/{post_id}", response_model=PostResponse)
-async def update_post_full(post_id:int,  post_data: PostCreate, db:Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+async def update_post_full(
+    post_id: int,
+    post_data: PostCreate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(
+        select(models.Post).where(models.Post.id == post_id)
+    )
     post = result.scalars().first()
     if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found",
+        )
 
     if post_data.user_id != post.user_id:
-        result = await db.execute(select(models.User).where(models.User.id == post_data.user_id))
+        result = await db.execute(
+            select(models.User).where(models.User.id == post_data.user_id)
+        )
         user = result.scalars().first()
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
             )
-    
-    post.title= post_data.title
-    post.content= post_data.content
-    post.user_id= post_data.user_id
+
+    post.title = post_data.title
+    post.content = post_data.content
+    post.user_id = post_data.user_id
 
     await db.commit()
     await db.refresh(post, attribute_names=["author"])
@@ -79,28 +102,44 @@ async def update_post_full(post_id:int,  post_data: PostCreate, db:Annotated[Asy
 
 
 @router.patch("/{post_id}", response_model=PostResponse)
-async def update_post_partial (post_id: int, post_data:PostUpdate, db:Annotated[AsyncSession, Depends(get_db)]):
-    result=await db.execute(select(models.Post).where(models.Post.id == post_id))
-    post=result.scalars().first()
+async def update_post_partial(
+    post_id: int,
+    post_data: PostUpdate,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    result = await db.execute(
+        select(models.Post).where(models.Post.id == post_id)
+    )
+    post = result.scalars().first()
     if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found",
+        )
 
-
-    update_data= post_data.model_dump(exclude_unset=True) #exclude_unset=True essentially makes sure pydantic only includes the field specified by the user to be updated in the patch method
+    update_data = post_data.model_dump(exclude_unset=True)
+    # exclude_unset=True essentially makes sure pydantic only includes
+    # the field specified by the user to be updated in the patch method
 
     for field, value in update_data.items():
         setattr(post, field, value)
 
-
     await db.commit()
-    await db.refresh(post)
+    await db.refresh(post, attribute_names=["author"])
     return post
+
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
-    result = await db.execute(select(models.Post).where(models.Post.id == post_id))
+    result = await db.execute(
+        select(models.Post).where(models.Post.id == post_id)
+    )
     post = result.scalars().first()
     if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Post not found",
+        )
+
     await db.delete(post)
     await db.commit()
