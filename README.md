@@ -1,50 +1,50 @@
-# 🚀 FastAPI Async Blog API
+# FastAPI Async Blog API
 
 A fully asynchronous RESTful blog API built with **FastAPI**, **SQLAlchemy (async)**, and **Pydantic**.
 This project demonstrates a clean, modular backend architecture with complete **CRUD operations** for users and posts.
 
 ---
 
-## ✨ Features
+## Features
 
-* ⚡ Fully asynchronous API using **FastAPI** and **SQLAlchemy AsyncSession**
-* 🧩 Modular router-based architecture
-* 🔄 Complete CRUD operations for:
+* Fully asynchronous API using **FastAPI** and **SQLAlchemy AsyncSession**
+* Modular router-based architecture
+* Complete CRUD operations for:
 
-  * 👤 Users
-  * 📝 Posts
-* ✅ Input validation using **Pydantic**
-* 📚 Automatic OpenAPI/Swagger documentation
-* 🎨 Template rendering using **Jinja2**
-* 🗂️ Static and media file serving
-* 🚨 Proper HTTP error handling
-* 🔗 Eager loading of relationships to avoid async lazy-loading issues
+  * Users
+  * Posts
+* Input validation using **Pydantic**
+* Automatic OpenAPI/Swagger documentation
+* Template rendering using **Jinja2**
+* Static and media file serving
+* Proper HTTP error handling
+* Eager loading of relationships to avoid async lazy-loading issues
 
 ---
 
-## 🛠 Tech Stack
+## Tech Stack
 
 **Backend**
 
-* ⚡ FastAPI
-* 🐍 Python (async/await)
+* FastAPI
+* Python (async/await)
 
 **Database**
 
-* 🗄 SQLite
-* 🔧 SQLAlchemy (Async ORM)
+* SQLite
+* SQLAlchemy (Async ORM)
 
 **Data Validation**
 
-* 🧪 Pydantic
+* Pydantic
 
 **Templating**
 
-* 🎨 Jinja2
+* Jinja2
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 project/
@@ -67,9 +67,9 @@ project/
 
 ---
 
-## 🌐 API Endpoints
+## API Endpoints
 
-### 👤 Users
+### Users
 
 | Method | Endpoint                     | Description      |
 | ------ | ---------------------------- | ---------------- |
@@ -79,7 +79,7 @@ project/
 | PATCH  | `/api/users/{user_id}`       | Update user      |
 | DELETE | `/api/users/{user_id}`       | Delete user      |
 
-### 📝 Posts
+### Posts
 
 | Method | Endpoint               | Description     |
 | ------ | ---------------------- | --------------- |
@@ -92,16 +92,16 @@ project/
 
 ---
 
-## ⚙️ Setup Instructions
+## Setup Instructions
 
-### 1️⃣ Clone the repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/yourusername/your-repo-name.git
 cd your-repo-name
 ```
 
-### 2️⃣ Create virtual environment
+### 2. Create virtual environment
 
 ```bash
 python -m venv venv
@@ -121,13 +121,13 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 
-### 3️⃣ Install dependencies
+### 3. Install dependencies
 
 ```bash
 pip install fastapi uvicorn sqlalchemy aiosqlite jinja2 pydantic
 ```
 
-### 4️⃣ Run the server
+### 4. Run the server
 
 ```bash
 uvicorn main:app --reload
@@ -135,33 +135,32 @@ uvicorn main:app --reload
 
 ---
 
-## 📖 API Documentation
+## API Documentation
 
 After running the server, visit:
 
-* 🧪 Swagger UI:
+* Swagger UI:
   `http://127.0.0.1:8000/docs`
 
-* 📘 ReDoc:
+* ReDoc:
   `http://127.0.0.1:8000/redoc`
 
 ---
 
-## 🧠 Key Concepts Demonstrated
+## Key Concepts Demonstrated
 
-* ⚡ Async database sessions
-* 🔌 Dependency injection in FastAPI
-* 🔗 ORM relationships with eager loading
-* 🧩 Router-based API structure
-* 🏗 Separation of models, schemas, and routes
-* 🚦 Proper HTTP status handling
+* Async database sessions
+* Dependency injection in FastAPI
+* ORM relationships with eager loading
+* Router-based API structure
+* Separation of models, schemas, and routes
+* Proper HTTP status handling
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 
-* 🔐 Authentication (JWT)
-* 🖼 File upload for user profile images
-* 📄 Pagination for posts
-* 🛠 Database migrations (Alembic)
-* 🐘 Production database (PostgreSQL)
+* Authentication and authorization
+* Deploying and hosting backend services on AWS
+* More production-style architecture
+
