@@ -97,8 +97,8 @@ project/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/your-repo-name.git
-cd your-repo-name
+git clone https://github.com/giri5hsharma/fast_api_blog.git
+cd fast_api_blog
 ```
 
 ### 2. Create virtual environment
@@ -163,4 +163,5 @@ After running the server, visit:
 * Authentication and authorization
 * Deploying and hosting backend services on AWS
 * More production-style architecture
+
 
