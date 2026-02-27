@@ -20,6 +20,8 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
+    password_hash : Mapped[str] = mapped_column(String(200), nullable=False) #200 characters good for argon2 hashing
+
     image_file: Mapped[str | None] = mapped_column(
         String(200),
         nullable=True,
@@ -27,6 +29,8 @@ class User(Base):
         # stores only the filename, not the actual file
         # decouples the database from the filesystem
         # could be replaced with a default image if desired
+    
+
     )
 
     posts: Mapped[list[Post]] = relationship(back_populates="author", cascade="all, delete-orphan")

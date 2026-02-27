@@ -13,20 +13,28 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    pass
+    password: str=Field(min_length=8)  # password field for user creation; not stored directly in the database
 
 
-class UserResponse(UserBase):
+class UserPublic(BaseModel): #where is base model coming from??
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    username: str 
     image_file: str | None
     image_path: str
+
+class UserPrivate(UserPublic):
+    email: EmailStr
 
 class UserUpdate(BaseModel): #patch method for user update
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, max_length=120)
     image_file: str | None = Field(default=None, min_length=1, max_length=200)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 
 
@@ -51,7 +59,7 @@ class PostResponse(PostBase):
     id: int
     user_id: int
     date_posted: datetime
-    author: UserResponse  
+    author: UserPublic
     # nested response model
     # allows returning author details with the post
     # useful for showing username/profile picture on frontend

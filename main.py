@@ -1,3 +1,5 @@
+#for authentication use pwdlib[argon2], pyjwt, pydantic-settings (for managing settings) packages 
+
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
@@ -110,6 +112,24 @@ async def user_posts_page(
         request,
         "user_posts.html",
         {"posts": posts, "user": user, "title": f"{user.username}'s Posts"},
+    )
+
+## login and register template_routes
+@app.get("/login", include_in_schema=False) #inclueinschema makes them not show up in docs
+async def login_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "login.html",
+        {"title": "Login"},
+    )
+
+
+@app.get("/register", include_in_schema=False)
+async def register_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "register.html",
+        {"title": "Register"},
     )
 
 
