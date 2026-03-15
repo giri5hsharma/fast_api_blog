@@ -13,30 +13,31 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str=Field(min_length=8)  # password field for user creation; not stored directly in the database
+    password: str = Field(min_length=8)  # password field for user creation; not stored directly in the database
 
 
-class UserPublic(BaseModel): #where is base model coming from??
+class UserPublic(BaseModel):  # where is BaseModel coming from??
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    username: str 
+    username: str
     image_file: str | None
     image_path: str
+
 
 class UserPrivate(UserPublic):
     email: EmailStr
 
-class UserUpdate(BaseModel): #patch method for user update
+
+class UserUpdate(BaseModel):  # patch method for user update
     username: str | None = Field(default=None, min_length=1, max_length=50)
     email: EmailStr | None = Field(default=None, max_length=120)
     image_file: str | None = Field(default=None, min_length=1, max_length=200)
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
-
-
 
 
 class PostBase(BaseModel):
@@ -47,6 +48,7 @@ class PostBase(BaseModel):
 
 class PostCreate(PostBase):
     user_id: int  # temporary for testing; later comes from authenticated user
+
 
 class PostUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=100)

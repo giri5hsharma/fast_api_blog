@@ -43,7 +43,7 @@
         if (response.ok) {
           const data = await response.json();
 
-          // Store token in localStorage
+          // Store token in localStorage not cookies for better security against XSS. http cookies for browser only. this shud work on any client
           localStorage.setItem('access_token', data.access_token);
 
           // Show success modal and redirect to home

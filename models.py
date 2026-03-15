@@ -20,24 +20,26 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
 
-    password_hash : Mapped[str] = mapped_column(String(200), nullable=False) #200 characters good for argon2 hashing
+    password_hash: Mapped[str] = mapped_column(String(200), nullable=False)  
+    # 200 characters is safe for Argon2 password hashes
 
     image_file: Mapped[str | None] = mapped_column(
         String(200),
         nullable=True,
-        default=None,  
+        default=None,
         # stores only the filename, not the actual file
         # decouples the database from the filesystem
         # could be replaced with a default image if desired
-    
-
     )
 
-    posts: Mapped[list[Post]] = relationship(back_populates="author", cascade="all, delete-orphan")
+    posts: Mapped[list[Post]] = relationship(
+        back_populates="author",
+        cascade="all, delete-orphan",
+    )
     # back_populates links two related models
     # so the relationship works both ways
-    #cascade ensures that when a user is deleted, their posts are also deleted to maintain data integrity
-    #orphan means if a post is removed from the user's posts list, it will be deleted from the database as well
+    # cascade ensures that when a user is deleted, their posts are also deleted to maintain data integrity
+    # orphan means if a post is removed from the user's posts list, it will be deleted from the database as well
 
     @property
     def image_path(self) -> str:

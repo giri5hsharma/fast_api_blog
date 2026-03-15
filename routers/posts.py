@@ -18,7 +18,7 @@ async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
         select(models.Post)
         .options(selectinload(models.Post.author))
-        .order_by(models.Post.date_posted.desc())
+        .order_by(models.Post.date_posted.desc()),
     )  # eager loading author details with each post, also ordering by most recent posts first
     # .order_by(models.Post.date_posted.desc()) --> ordering posts by descending order
     posts = result.scalars().all()
@@ -32,7 +32,7 @@ async def get_posts(db: Annotated[AsyncSession, Depends(get_db)]):
 )
 async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.User).where(models.User.id == post.user_id)
+        select(models.User).where(models.User.id == post.user_id),
     )
     user = result.scalars().first()
     if not user:
@@ -46,6 +46,7 @@ async def create_post(post: PostCreate, db: Annotated[AsyncSession, Depends(get_
         content=post.content,
         user_id=post.user_id,
     )
+
     db.add(new_post)
     await db.commit()
     await db.refresh(new_post, attribute_names=["author"])
@@ -57,12 +58,18 @@ async def get_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
         select(models.Post)
         .options(selectinload(models.Post.author))
-        .where(models.Post.id == post_id)
+        .where(models.Post.id == post_id),
     )
+
     post = result.scalars().first()
+
     if post:
         return post
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="Post not found",
+    )
 
 
 @router.put("/{post_id}", response_model=PostResponse)
@@ -72,9 +79,11 @@ async def update_post_full(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
-        select(models.Post).where(models.Post.id == post_id)
+        select(models.Post).where(models.Post.id == post_id),
     )
+
     post = result.scalars().first()
+
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -83,9 +92,11 @@ async def update_post_full(
 
     if post_data.user_id != post.user_id:
         result = await db.execute(
-            select(models.User).where(models.User.id == post_data.user_id)
+            select(models.User).where(models.User.id == post_data.user_id),
         )
+
         user = result.scalars().first()
+
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -98,6 +109,7 @@ async def update_post_full(
 
     await db.commit()
     await db.refresh(post, attribute_names=["author"])
+
     return post
 
 
@@ -108,9 +120,11 @@ async def update_post_partial(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     result = await db.execute(
-        select(models.Post).where(models.Post.id == post_id)
+        select(models.Post).where(models.Post.id == post_id),
     )
+
     post = result.scalars().first()
+
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -118,6 +132,7 @@ async def update_post_partial(
         )
 
     update_data = post_data.model_dump(exclude_unset=True)
+
     # exclude_unset=True essentially makes sure pydantic only includes
     # the field specified by the user to be updated in the patch method
 
@@ -126,15 +141,18 @@ async def update_post_partial(
 
     await db.commit()
     await db.refresh(post, attribute_names=["author"])
+
     return post
 
 
 @router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(post_id: int, db: Annotated[AsyncSession, Depends(get_db)]):
     result = await db.execute(
-        select(models.Post).where(models.Post.id == post_id)
+        select(models.Post).where(models.Post.id == post_id),
     )
+
     post = result.scalars().first()
+
     if not post:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
