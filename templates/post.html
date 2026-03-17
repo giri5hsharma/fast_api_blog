@@ -1,5 +1,4 @@
-{% extends "layout.html" %}
-{% block content %}
+{% extends "layout.html" %} {% block content %}
 <article class="content-section py-3 px-4 mb-4">
   <div class="d-flex align-items-start gap-4">
     <img
@@ -15,7 +14,8 @@
         <a
           class="me-2"
           href="{{ url_for('user_posts', user_id=post.author.id) }}"
-        >{{ post.author.username }}</a>
+          >{{ post.author.username }}</a
+        >
         <small class="text-body-secondary">
           {{ post.date_posted.strftime("%B %d, %Y") }}
         </small>
@@ -57,7 +57,6 @@
 >
   <div class="modal-dialog">
     <div class="modal-content">
-
       <div class="modal-header">
         <h5 class="modal-title" id="editModalLabel">Edit Post</h5>
         <button
@@ -70,7 +69,6 @@
 
       <form id="editPostForm">
         <div class="modal-body">
-
           <input type="hidden" name="post_id" value="{{ post.id }}" />
 
           <div class="mb-3">
@@ -93,9 +91,10 @@
               name="content"
               rows="5"
               required
-            >{{ post.content }}</textarea>
+            >
+{{ post.content }}</textarea
+            >
           </div>
-
         </div>
 
         <div class="modal-footer">
@@ -107,12 +106,9 @@
             Cancel
           </button>
 
-          <button type="submit" class="btn btn-primary">
-            Save Changes
-          </button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
-
     </div>
   </div>
 </div>
@@ -127,7 +123,6 @@
 >
   <div class="modal-dialog">
     <div class="modal-content">
-
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title" id="deleteModalLabel">Delete Post?</h5>
         <button
@@ -140,7 +135,8 @@
 
       <div class="modal-body">
         <p class="fs-5">
-          Are you sure you want to delete this post? This action cannot be undone.
+          Are you sure you want to delete this post? This action cannot be
+          undone.
         </p>
       </div>
 
@@ -153,173 +149,165 @@
           Cancel
         </button>
 
-        <button
-          type="button"
-          class="btn btn-danger"
-          id="confirmDelete"
-        >
+        <button type="button" class="btn btn-danger" id="confirmDelete">
           Delete
         </button>
       </div>
-
     </div>
   </div>
 </div>
 
-{% endblock content %}
-
-{% block scripts %}
+{% endblock content %} {% block scripts %}
 
 <script type="module">
 
-import {
-  getErrorMessage,
-  hideModal,
-  showModal,
-} from "/static/js/utils.js";
+  import {
+    getErrorMessage,
+    hideModal,
+    showModal,
+  } from "/static/js/utils.js";
 
-import {
-  getCurrentUser as fetchCurrentUser,
-  getToken as fetchToken,
-} from "/static/js/auth.js";
+  import {
+    getCurrentUser as fetchCurrentUser,
+    getToken as fetchToken,
+  } from "/static/js/auth.js";
 
-// Get post ID from Jinja2 template
-const postId = {{ post.id }};
-const postOwnerId = {{ post.user_id }};
-const postActions = document.getElementById("postActions");
+  // Get post ID from Jinja2 template
+  const postId = {{ post.id }};
+  const postOwnerId = {{ post.user_id }};
+  const postActions = document.getElementById("postActions");
 
-// Show owner actions only when the authenticated user owns this post.
-async function syncPostActionsVisibility() {
-  const currentUser = await fetchCurrentUser();
-  const isOwner = currentUser && currentUser.id === postOwnerId;
-  if (postActions) {
-    postActions.classList.toggle("d-none", !isOwner);
-  }
-}
-
-syncPostActionsVisibility();
-
-function buildAuthHeaders(includeJsonContentType = false) {
-  const headers = {};
-  const token = fetchToken();
-
-  if (includeJsonContentType) {
-    headers["Content-Type"] = "application/json";
+  // Show owner actions only when the authenticated user owns this post.
+  async function syncPostActionsVisibility() {
+    const currentUser = await fetchCurrentUser();
+    const isOwner = currentUser && currentUser.id === postOwnerId;
+    if (postActions) {
+      postActions.classList.toggle("d-none", !isOwner);
+    }
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  syncPostActionsVisibility();
+
+  function buildAuthHeaders(includeJsonContentType = false) {
+    const headers = {};
+    const token = fetchToken();
+
+    if (includeJsonContentType) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
   }
 
-  return headers;
-}
+  // Edit Post Form Handler
+  const editForm = document.getElementById("editPostForm");
 
-// Edit Post Form Handler
-const editForm = document.getElementById("editPostForm");
+  if (editForm) {
+    editForm.addEventListener("submit", async (event) => {
 
-if (editForm) {
-  editForm.addEventListener("submit", async (event) => {
+    // Stop default form submission - we'll handle it with JavaScript
+    event.preventDefault();
 
-  // Stop default form submission - we'll handle it with JavaScript
-  event.preventDefault();
+    // Gather form values into a plain object
+    const formData = new FormData(editForm);
+    const postData = Object.fromEntries(formData.entries());
 
-  // Gather form values into a plain object
-  const formData = new FormData(editForm);
-  const postData = Object.fromEntries(formData.entries());
+    // Remove post_id from data (it's in the URL, not the body)
+    delete postData.post_id;
 
-  // Remove post_id from data (it's in the URL, not the body)
-  delete postData.post_id;
+    try {
 
-  try {
+      // PATCH for partial update (just title and content, not user_id)
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: buildAuthHeaders(true),
+        body: JSON.stringify(postData),
+      });
 
-    // PATCH for partial update (just title and content, not user_id)
-    const response = await fetch(`/api/posts/${postId}`, {
-      method: "PATCH",
-      headers: buildAuthHeaders(true),
-      body: JSON.stringify(postData),
-    });
+      if (response.ok) {
 
-    if (response.ok) {
+        document.getElementById("successMessage").textContent =
+          "Post updated successfully!";
 
-      document.getElementById("successMessage").textContent =
-        "Post updated successfully!";
+        hideModal("editModal");
+        showModal("successModal");
 
-      hideModal("editModal");
-      showModal("successModal");
+        document
+          .getElementById("successModal")
+          .addEventListener(
+            "hidden.bs.modal",
+            () => {
+              window.location.reload();
+            },
+            { once: true },
+          );
 
-      document
-        .getElementById("successModal")
-        .addEventListener(
-          "hidden.bs.modal",
-          () => {
-            window.location.reload();
-          },
-          { once: true },
-        );
+      } else {
 
-    } else {
+        const error = await response.json();
 
-      const error = await response.json();
+        document.getElementById("errorMessage").textContent =
+          getErrorMessage(error);
+
+        hideModal("editModal");
+        showModal("errorModal");
+      }
+
+    } catch (error) {
 
       document.getElementById("errorMessage").textContent =
-        getErrorMessage(error);
+        "Network error. Please check your connection and try again.";
 
-      hideModal("editModal");
       showModal("errorModal");
     }
 
-  } catch (error) {
-
-    document.getElementById("errorMessage").textContent =
-      "Network error. Please check your connection and try again.";
-
-    showModal("errorModal");
+    });
   }
 
-  });
-}
+  // Delete Post Handler
+  const deleteButton = document.getElementById("confirmDelete");
 
-// Delete Post Handler
-const deleteButton = document.getElementById("confirmDelete");
+  if (deleteButton) {
+    deleteButton.addEventListener("click", async () => {
 
-if (deleteButton) {
-  deleteButton.addEventListener("click", async () => {
+    try {
 
-  try {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "DELETE",
+        headers: buildAuthHeaders(),
+      });
 
-    const response = await fetch(`/api/posts/${postId}`, {
-      method: "DELETE",
-      headers: buildAuthHeaders(),
-    });
+      // 204 = success
+      if (response.status === 204) {
 
-    // 204 = success
-    if (response.status === 204) {
+        window.location.href = "/";
 
-      window.location.href = "/";
+      } else {
 
-    } else {
+        const error = await response.json();
 
-      const error = await response.json();
+        document.getElementById("errorMessage").textContent =
+          getErrorMessage(error);
+
+        hideModal("deleteModal");
+        showModal("errorModal");
+
+      }
+
+    } catch (error) {
 
       document.getElementById("errorMessage").textContent =
-        getErrorMessage(error);
+        "Network error. Please check your connection and try again.";
 
-      hideModal("deleteModal");
       showModal("errorModal");
-
     }
 
-  } catch (error) {
-
-    document.getElementById("errorMessage").textContent =
-      "Network error. Please check your connection and try again.";
-
-    showModal("errorModal");
+    });
   }
-
-  });
-}
-
 </script>
 
 {% endblock scripts %}
