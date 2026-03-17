@@ -24,9 +24,7 @@
       <h2 class="article-title">{{ post.title }}</h2>
       <p class="article-content">{{ post.content }}</p>
 
-      <!-- Only show edit/delete options if user_id is 1 (TEMPORARY - until authentication) -->
-      {% if post.user_id == 1 %}
-      <div class="post-actions mt-3 pt-3 border-top">
+      <div class="post-actions mt-3 pt-3 border-top d-none" id="postActions">
         <button
           type="button"
           class="btn btn-outline-secondary me-1"
@@ -45,7 +43,6 @@
           Delete Post
         </button>
       </div>
-      {% endif %}
     </div>
   </div>
 </article>
@@ -181,13 +178,47 @@ import {
   showModal,
 } from "/static/js/utils.js";
 
+import {
+  getCurrentUser as fetchCurrentUser,
+  getToken as fetchToken,
+} from "/static/js/auth.js";
+
 // Get post ID from Jinja2 template
 const postId = {{ post.id }};
+const postOwnerId = {{ post.user_id }};
+const postActions = document.getElementById("postActions");
+
+// Show owner actions only when the authenticated user owns this post.
+async function syncPostActionsVisibility() {
+  const currentUser = await fetchCurrentUser();
+  const isOwner = currentUser && currentUser.id === postOwnerId;
+  if (postActions) {
+    postActions.classList.toggle("d-none", !isOwner);
+  }
+}
+
+syncPostActionsVisibility();
+
+function buildAuthHeaders(includeJsonContentType = false) {
+  const headers = {};
+  const token = fetchToken();
+
+  if (includeJsonContentType) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
 
 // Edit Post Form Handler
 const editForm = document.getElementById("editPostForm");
 
-editForm.addEventListener("submit", async (event) => {
+if (editForm) {
+  editForm.addEventListener("submit", async (event) => {
 
   // Stop default form submission - we'll handle it with JavaScript
   event.preventDefault();
@@ -204,9 +235,7 @@ editForm.addEventListener("submit", async (event) => {
     // PATCH for partial update (just title and content, not user_id)
     const response = await fetch(`/api/posts/${postId}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: buildAuthHeaders(true),
       body: JSON.stringify(postData),
     });
 
@@ -247,17 +276,20 @@ editForm.addEventListener("submit", async (event) => {
     showModal("errorModal");
   }
 
-});
+  });
+}
 
 // Delete Post Handler
 const deleteButton = document.getElementById("confirmDelete");
 
-deleteButton.addEventListener("click", async () => {
+if (deleteButton) {
+  deleteButton.addEventListener("click", async () => {
 
   try {
 
     const response = await fetch(`/api/posts/${postId}`, {
       method: "DELETE",
+      headers: buildAuthHeaders(),
     });
 
     // 204 = success
@@ -285,7 +317,8 @@ deleteButton.addEventListener("click", async () => {
     showModal("errorModal");
   }
 
-});
+  });
+}
 
 </script>
 
